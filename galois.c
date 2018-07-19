@@ -42,101 +42,102 @@ uint8_t gf_inv(uint8_t x)
     return gf_div(1, x);
 }
 
-int gf_poly_scale(uint8_t *r, uint8_t  *p, int len, uint8_t x)
+viod gf_poly_scale(struct gf_poly *r, struct gf_poly *p, uint8_t x)
 {
     int i;
-    for(i = 0; i < len; i++) {
-        r[i] = gf_mul(p[i], x);
+    for(i = 0; i < p->len; i++) {
+        r->dat[i] = gf_mul(p->dat[i], x);
     }
-    
-    return len;
 }
 
-int gf_poly_add(uint8_t *r, uint8_t  *p, int lenp, uint8_t *q, int lenq)
+viod gf_poly_add(struct gf_poly *r, struct gf_poly *p, struct gf_poly *q)
 {
     int i;
     int lenr;
     
-    if(lenp > lenq) {
-        lenr = lenp;
+    if(p->len > q->len) {
+        lenr = p->len;
     } else {
-        lenr = lenq;
+        lenr = q->len;
     }
     
-    for(i = 0; i < lenp; i++) {
-        r[i+lenr-lenp] = p[i]
+    for(i = 0; i < p->len; i++) {
+        r->dat[i + lenr - p->len] = p->dat[i]
     }
 
-    for(i = 0; i < lenq; i++) {
-        r[i+lenr-lenq] ^= q[i];
+    for(i = 0; i < q->len; i++) {
+        r->dat[i + lenr - q->len] ^= q->dat[i];
     }
-
-    return lenr;
+    
 }
 
-int gf_poly_mul(uint8_t *r, uint8_t *p, int lenp, uint8_t *q, int lenq)
+viod gf_poly_mul(struct gf_poly *r, struct gf_poly *p, struct gf_poly *q)
 {
     int i, j;
-    for(j = 0; j < lenq; j++) {
-        for(i = 0; i < lenp; i++) {
-            r[i+j] ^= gf_mul(p[i], q[j]);
+    for(j = 0; j < q->len; j++) {
+        for(i = 0; i < p->len; i++) {
+            r->dat[i+j] ^= gf_mul(p->dat[i], q->dat[j]);
         }
     }
 
-    return lenp + lenq - 1;
+    r->len = p->len + q->len - 1;
 }
 
-uint8_t gf_poly_eval(uint8_t *p, int lenp, uint8_t x)
+uint8_t gf_poly_eval(struct gf_poly *p, uint8_t x)
 {
     uint8_t y;
-    y = p[0];
-    for(i = 1; i < lenp; i++) {
-        y = gf_mul(y, x) ^ p[i];
+    y = p->dat[0];
+    for(i = 1; i < p->len; i++) {
+        y = gf_mul(y, x) ^ p->dat[i];
     }
 
     return y;
 }
 
-void gf_poly_div(uint8_t *r, int *lenq, int *lenr,
-                    uint8_t *dividend, int len_dividend,
-                    uint8_t *divisor, int len_divisor)
+void gf_poly_div(struct gf_poly *q, struct gf_poly *r,
+                 struct gf_poly *dividend, struct gf_poly *divisor);
 {
     int i, j;
     uint8_t normalizer;
 
     normalizer = divisor[0];
-    gf_poly_scale(divisor, divisor, len_divisor, gf_inv(normalizer));
+    gf_poly_scale(divisor, divisor, gf_inv(normalizer));
 
     // copy dividend to result
-    for(i = 0; i < len_dividend; i++) {
-        r[i] = dividend[i];
+    for(i = 0; i < dividend->len; i++) {
+        q->dat[i] = dividend->dat[i];
     }
     
-    for(i = 0; i < (len_dividend - len_divisor + 1) ; i++) {
-        if(r[i] == 0) {
+    for(i = 0; i < (dividend->len - divisor->len + 1) ; i++) {
+        if(q->dat[i] == 0) {
             continue;
         }
         
-        for(j = 1; j < len_divisor; j++) {
-            if(divisor[j] == 0) {
+        for(j = 1; j < divisor->len; j++) {
+            if(divisor->dat[j] == 0) {
                 continue;
             }
 
-            r[i+j] ^= gf_mul(r[i], divisor[j]);
+            q->dat[i+j] ^= gf_mul(q->dat[i], divisor->dat[j]);
         }
     }
 
-    *lenq = len_dividend - len_divisor + 1;
-    *lenr = len_divisor - 1;
-    gf_poly_scale(r, r, len_dividend - len_divisor, gf_inv(normalizer));
-    gf_poly_scale(divisor, divisor, len_divisor, gf_inv(normalizer));
+    q->len = dividend->len - divisor->len + 1;
+    r->len = divisor->len - 1;
+
+    for(i = 0; i < r->len; i++) {
+        r->dat[i] = q->dat[q->len + i];
+    }
+    
+    gf_poly_scale(q, q, gf_inv(normalizer));
+    gf_poly_scale(divisor, divisor, gf_inv(normalizer));
 }
 
-int gf_poly_len(uint8_t *p, int lenp)
+int gf_poly_len(uint8_t *p, int len)
 {
     int i;
     int ret = 0;
-    for(i = 0; i < lenp; i++) {
+    for(i = 0; i < len; i++) {
         if(p[i] != 0) {
             ret = i+1;
         }
