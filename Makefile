@@ -1,0 +1,7 @@
+
+
+reed_solomon_test: main.o reed_solomon.o galois.o
+	gcc $^ -o 
+
+*.o: *.c
+	gcc -c $< o-o $@
