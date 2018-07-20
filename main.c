@@ -17,7 +17,7 @@ void test(char *msg, int len, char *err, int len_err) {
     rs_encode_msg(&msg_in);
 
     err_in.dat = (uint8_t *)err;
-    err_in.len = err_len;
+    err_in.len = len_err;
     
     gf_poly_add(&msg_in, &msg_in, &err_in);
 
@@ -27,9 +27,9 @@ void test(char *msg, int len, char *err, int len_err) {
     } else if(ret == REED_SOLOMON_ERROR_CORRECT) {
 	printf("Error in the message and is been corrected.\n");
     } else if(ret == REED_SOLOMON_TOO_MUCH_ERROR) {
-	print("Too much error.\n");
+	printf("Too much error.\n");
     } else {
-	print("Shouldn't be here.\n");
+	printf("Shouldn't be here.\n");
     }
     
 }
@@ -37,6 +37,7 @@ void test(char *msg, int len, char *err, int len_err) {
 
 int main(void)
 {
+    rs_init();
     test("01234567", 7, "\0\0\0\0\0\0", 6);
     return 0;
 }

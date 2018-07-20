@@ -2,7 +2,7 @@
 
 
 static struct gf_poly code_generator;
-static uint8_t code_generator_buffer = [NSYM + 1];
+static uint8_t code_generator_buffer[NSYM + 1];
 static struct gf_poly temp_poly;
 static uint8_t temp_buffer[NELE];
 
@@ -17,17 +17,17 @@ void rs_generator_poly(struct gf_poly *gen, int nsym)
 {
     int i;
     uint8_t base_buf[2];
-    static gf_poly base;
+    struct gf_poly base;
     
     base.len = 2;
     base.dat = base_buf;
     
-    base[0] = 1;
+    base.dat[0] = 1;
     gen->dat[0] = 0;
     gen->len = 1;
     for(i = 0; i < nsym; i++) {
-        base[1] = gf_pow(2,i);
-        gf_poly_mul(&temp_poly, gen, base);
+        base.dat[1] = gf_pow(2,i);
+        gf_poly_mul(&temp_poly, gen, &base);
         gf_poly_copy(gen, &temp_poly);
     }
 }
@@ -113,7 +113,7 @@ void rs_find_error_locator_and_evaluator(struct gf_poly *locator,
     gf_poly_copy(evaluator, &v_cur);
 }
 
-void rs_correct_errata(uint8_t *msg, uint8_t *err_loc, int len_err_loc,
+void rs_correct_errata(struct gf_poly *msg, uint8_t *err_loc, int len_err_loc,
                        struct gf_poly *locator, struct gf_poly *evaluator)
 {
     int i;
@@ -124,7 +124,7 @@ void rs_correct_errata(uint8_t *msg, uint8_t *err_loc, int len_err_loc,
     
     // deriviation
     for(i = 0; i < locator->len; i++) {
-        locator[locator->len - i - 1] = 0;
+        locator->dat[locator->len - i - 1] = 0;
     }
 
     for(i = 0; i < len_err_loc; i++) {
@@ -148,9 +148,10 @@ void rs_find_errors(uint8_t *err_loc, int *len_err_loc, struct gf_poly *locator,
     
     a = gf_inv(gf_exp[NELE - nmsg]);
     for(i = 0; i < locator->len; i++) {
-        gf_poly_copy(&temp_poly, gf_pow(a, i));
+	temp_poly.dat[i] = gf_mul(locator->dat[i], a);
     }
-
+    
+    temp_poly.len = locator->len;
     i_err = 0;
     for(i = 0; i < nmsg; i++) {
         tmp = 0;
@@ -169,7 +170,7 @@ void rs_find_errors(uint8_t *err_loc, int *len_err_loc, struct gf_poly *locator,
 
         for(j = 0; j < temp_poly.len; j++) {
             i_locator = locator->len - j - 1;
-            temp_poly.dat[i_locator] = gf_mul(temp_poly.dat[i_locator], gf_exp[j])
+            temp_poly.dat[i_locator] = gf_mul(temp_poly.dat[i_locator], gf_exp[j]);
         }
     }
 }
@@ -188,7 +189,7 @@ int rs_decode_msg(struct gf_poly *msg)
     uint8_t err_loc[NSYM/2];
     int len_err_loc;
     
-    rs_calc_syndromes(msg, syndromes);
+    rs_calc_syndromes(msg, &syndromes);
     if(!rs_check_syndromes(&syndromes)) {
         return REED_SOLOMON_NO_ERROR;
     }
@@ -196,14 +197,14 @@ int rs_decode_msg(struct gf_poly *msg)
     rs_find_error_locator_and_evaluator(&locator,
                                         &evaluator,
                                         &syndromes);
-    rs_find_errors(err_loc, &len_err_loc, locator, msg->len);
+    rs_find_errors(err_loc, &len_err_loc, &locator, msg->len);
     if(len_err_loc > (NSYM/2)) {
         return REED_SOLOMON_TOO_MUCH_ERROR;
     }
 
     rs_correct_errata(msg, err_loc, len_err_loc,
-                      locator,
-                      evaluator);
+                      &locator,
+                      &evaluator);
 
     return REED_SOLOMON_ERROR_CORRECT;
 }
