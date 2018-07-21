@@ -129,11 +129,9 @@ void rs_correct_errata(struct gf_poly *msg, uint8_t *err_loc, int len_err_loc,
     int msg_i;
     int loc_i;
     // deriviation
-    for(i = 0; i < locator->len; i++) {
-	if((i % 2) == 0) {
-	    loc_i = locator->len - i - 1;
-	    locator->dat[loc_i] = 0;
-	}
+    for(i = 0; i < locator->len; i+=2) {
+	loc_i = locator->len - i - 1;
+	locator->dat[loc_i] = 0;
     }
     
     locator->len--;
