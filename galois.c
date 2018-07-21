@@ -74,8 +74,7 @@ void gf_poly_scale(struct gf_poly *p, uint8_t x)
 /**
  * @brief gf_poly addition and subtraction
  * @param r
- *   returned result, this parameter can be the same as p or q,
- *   dosen't effect the result and we can reduce one gf_poly_copy here.
+ *   returned result, please preapre an allocated memory for this parameter
  * @param p
  *    addend 1
  * @param q
@@ -84,20 +83,23 @@ void gf_poly_scale(struct gf_poly *p, uint8_t x)
 void gf_poly_add(struct gf_poly *r, struct gf_poly *p, struct gf_poly *q)
 {
     int i;
-    int lenr;
     
     if(p->len > q->len) {
-        lenr = p->len;
+	r->len = p->len;
     } else {
-        lenr = q->len;
+	r->len = q->len;
+    }
+
+    for(i = 0; i < r->len; i++) {
+	r->dat[i] = 0;
     }
     
     for(i = 0; i < p->len; i++) {
-        r->dat[i + lenr - p->len] = p->dat[i];
+	r->dat[i] ^= p->dat[i];
     }
-
+    
     for(i = 0; i < q->len; i++) {
-        r->dat[i + lenr - q->len] ^= q->dat[i];
+	r->dat[i] ^= q->dat[i];
     }
     
 }
@@ -114,13 +116,18 @@ void gf_poly_add(struct gf_poly *r, struct gf_poly *p, struct gf_poly *q)
 void gf_poly_mul(struct gf_poly *r, struct gf_poly *p, struct gf_poly *q)
 {
     int i, j;
+    r->len = p->len + q->len - 1;
+    for(i = 0; i < r->len; i++) {
+	r->dat[i] = 0;
+    }
+    
     for(j = 0; j < q->len; j++) {
         for(i = 0; i < p->len; i++) {
             r->dat[i+j] ^= gf_mul(p->dat[i], q->dat[j]);
         }
     }
 
-    r->len = p->len + q->len - 1;
+    
 }
 
 /**

@@ -9,8 +9,8 @@ static uint8_t temp_buffer[NELE];
 void rs_init(void)
 {
     code_generator.dat = code_generator_buffer;
-    rs_generator_poly(&code_generator, NSYM);
     temp_poly.dat = temp_buffer;
+    rs_generator_poly(&code_generator, NSYM);
 }
 
 void rs_generator_poly(struct gf_poly *gen, int nsym)
@@ -23,7 +23,7 @@ void rs_generator_poly(struct gf_poly *gen, int nsym)
     base.dat = base_buf;
     
     base.dat[0] = 1;
-    gen->dat[0] = 0;
+    gen->dat[0] = 1;
     gen->len = 1;
     for(i = 0; i < nsym; i++) {
         base.dat[1] = gf_pow(2,i);
@@ -35,7 +35,9 @@ void rs_generator_poly(struct gf_poly *gen, int nsym)
 void rs_encode_msg(struct gf_poly *msg)
 {
     struct gf_poly remainder;
+    msg->len += NSYM;
     gf_poly_div(&temp_poly, &remainder, msg, &code_generator);
+    msg->len -= NSYM;
     gf_poly_append(msg, &remainder);
 }
 
@@ -43,7 +45,7 @@ void rs_calc_syndromes(struct gf_poly *msg, struct gf_poly *synd)
 {
     int i;
     for(i = 0; i < NSYM; i++) {
-        synd->dat[i] = gf_poly_eval(msg, gf_exp[i]);
+        synd->dat[NSYM - i - 1] = gf_poly_eval(msg, gf_exp[i]);
     }
     synd->len = NSYM;
 }
@@ -78,7 +80,7 @@ void rs_find_error_locator_and_evaluator(struct gf_poly *locator,
     v_cur.dat = v_cur_buf; v_cur.len = NSYM + 1;
     x_pre.dat = x_pre_buf; x_pre.len = 1;
     x_cur.dat = x_cur_buf; x_cur.len = 1;
-    x_tmp.dat = x_tmp_buf; x_cur.len = 0;
+    x_tmp.dat = x_tmp_buf; x_tmp.len = 0;
 
     for(i = 0; i < v_pre.len; i++) {
         v_pre.dat[i] = 0;
@@ -121,12 +123,17 @@ void rs_correct_errata(struct gf_poly *msg, uint8_t *err_loc, int len_err_loc,
     uint8_t dividend, divisor;
     uint8_t mag;
     int msg_i;
-    
+    int loc_i;
     // deriviation
     for(i = 0; i < locator->len; i++) {
-        locator->dat[locator->len - i - 1] = 0;
+	loc_i = locator->len - i - 1;
+	if((loc_i % 2) == 1) {
+	    locator->dat[locator->len - i - 1] = 0;
+	}
     }
-
+    
+    locator->len--;
+    gf_poly_delete_leading_zeros(locator);
     for(i = 0; i < len_err_loc; i++) {
         x = gf_exp[err_loc[i]];
         x_inv = gf_inv(x);
@@ -148,7 +155,7 @@ void rs_find_errors(uint8_t *err_loc, int *len_err_loc, struct gf_poly *locator,
     
     a = gf_inv(gf_exp[NELE - nmsg]);
     for(i = 0; i < locator->len; i++) {
-	temp_poly.dat[i] = gf_mul(locator->dat[i], a);
+	temp_poly.dat[i] = gf_mul(locator->dat[i], gf_pow(a,i));
     }
     
     temp_poly.len = locator->len;
@@ -160,12 +167,13 @@ void rs_find_errors(uint8_t *err_loc, int *len_err_loc, struct gf_poly *locator,
         }
 
         if(tmp == 0) {
-            i_err++;
-            if(i_err > (NSYM/2)) {
+            if((i_err + 1) > (NSYM/2)) {
                 // too many errors
+		*len_err_loc = i_err;
                 return;
             }
             err_loc[i_err] = nmsg - i - 1;
+	    i_err++;
         }
 
         for(j = 0; j < temp_poly.len; j++) {
@@ -173,6 +181,7 @@ void rs_find_errors(uint8_t *err_loc, int *len_err_loc, struct gf_poly *locator,
             temp_poly.dat[i_locator] = gf_mul(temp_poly.dat[i_locator], gf_exp[j]);
         }
     }
+    *len_err_loc = i_err;
 }
 
 int rs_decode_msg(struct gf_poly *msg)
@@ -198,7 +207,7 @@ int rs_decode_msg(struct gf_poly *msg)
                                         &evaluator,
                                         &syndromes);
     rs_find_errors(err_loc, &len_err_loc, &locator, msg->len);
-    if(len_err_loc > (NSYM/2)) {
+    if((len_err_loc > (NSYM/2)) || (len_err_loc == 0)) {
         return REED_SOLOMON_TOO_MUCH_ERROR;
     }
 
