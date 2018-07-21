@@ -95,11 +95,11 @@ void gf_poly_add(struct gf_poly *r, struct gf_poly *p, struct gf_poly *q)
     }
     
     for(i = 0; i < p->len; i++) {
-	r->dat[i] ^= p->dat[i];
+	r->dat[i + r->len - p->len] ^= p->dat[i];
     }
     
     for(i = 0; i < q->len; i++) {
-	r->dat[i] ^= q->dat[i];
+	r->dat[i + r->len - q->len] ^= q->dat[i];
     }
     
 }
@@ -194,7 +194,7 @@ void gf_poly_div(struct gf_poly *q, struct gf_poly *r,
     r->dat = &(q->dat[q->len]);
     r->len = divisor->len - 1;
     gf_poly_scale(q, gf_inv(normalizer));
-    gf_poly_scale(divisor, gf_inv(normalizer));
+    gf_poly_scale(divisor, normalizer);
 }
 
 int gf_poly_len(uint8_t *p, int len)

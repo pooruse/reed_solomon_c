@@ -34,7 +34,11 @@ void rs_generator_poly(struct gf_poly *gen, int nsym)
 
 void rs_encode_msg(struct gf_poly *msg)
 {
+    int i;
     struct gf_poly remainder;
+    for(i = 0; i < NSYM; i++) {
+	msg->dat[msg->len + i] = 0;
+    }
     msg->len += NSYM;
     gf_poly_div(&temp_poly, &remainder, msg, &code_generator);
     msg->len -= NSYM;
@@ -126,9 +130,9 @@ void rs_correct_errata(struct gf_poly *msg, uint8_t *err_loc, int len_err_loc,
     int loc_i;
     // deriviation
     for(i = 0; i < locator->len; i++) {
-	loc_i = locator->len - i - 1;
-	if((loc_i % 2) == 1) {
-	    locator->dat[locator->len - i - 1] = 0;
+	if((i % 2) == 0) {
+	    loc_i = locator->len - i - 1;
+	    locator->dat[loc_i] = 0;
 	}
     }
     
