@@ -197,6 +197,10 @@ int rs_decode_msg(struct gf_poly *msg)
     
     uint8_t err_loc[NSYM/2];
     int len_err_loc;
+
+    syndromes.dat = syndromes_buf;
+    locator.dat = locator_buf;
+    evaluator.dat = evaluator_buf;
     
     rs_calc_syndromes(msg, &syndromes);
     if(!rs_check_syndromes(&syndromes)) {

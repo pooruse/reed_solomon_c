@@ -25,4 +25,5 @@ void rs_correct_errata(struct gf_poly *msg, uint8_t *err_loc, int len_err_loc,
 
 void rs_find_errors(uint8_t *err_loc, int *len_err_loc, struct gf_poly *locator, int nmsg);
 int rs_decode_msg(struct gf_poly *msg);
+
 #endif
