@@ -16,23 +16,22 @@ void test(char *msg, int len, char *err, int len_err) {
     struct gf_poly msg_in;
     struct gf_poly err_in;
 
-    printf("msg: ");
-    for(i = 0; i < len; i++) {
-	printf("%02X ", msg[i]);
-    }
-    printf("\n");
-    printf("err: ");
-    for(i = 0; i < len; i++) {
-	printf("%02X ", err[i]);
-    }
-    printf("\n");
-    
-    
     memcpy(msg_buffer, msg, len);
     msg_in.dat = (uint8_t *)msg_buffer;
     msg_in.len = len;
     rs_encode_msg(&msg_in);
 
+    printf("msg: ");
+    for(i = 0; i < msg_in.len; i++) {
+	printf("%02X ", msg_in.dat[i]);
+    }
+    printf("\n");
+    printf("err: ");
+    for(i = 0; i < len_err; i++) {
+	printf("%02X ", err[i]);
+    }
+    printf("\n");
+    
     memcpy(expect, msg_in.dat, msg_in.len);
     
     err_in.dat = (uint8_t *)err;
